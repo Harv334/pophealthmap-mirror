@@ -31,12 +31,15 @@ GeoJSON layers, `data/map/`, and `data/meta/manifest.json`. The pipeline, the
 parquet intermediates, the Worker and the repo history all stay in the
 [main repo](https://github.com/Harv334/pophealthmap).
 
-Two files differ from the originals, both on purpose:
+One file differs from the original, on purpose:
 
 | File | Difference | Why |
 |---|---|---|
 | `index.html` | `robots` meta is `noindex` | Two identical copies competing in search would cost both. The canonical tag still points at pophealth.uk, so any signal this copy earns is credited there. |
-| `data/map/assistant.js` | `ASSISTANT_ENDPOINT` is empty | The Worker only allows the pophealth.uk origins, so a question asked from here returns 403. An empty endpoint hides the panel rather than shipping one that always fails. |
+
+The Ask panel works here. The Worker's `ALLOWED_ORIGINS` already lists
+`https://harv334.github.io`, so questions asked from this address are answered
+exactly as they are on the live site, against the same per-IP daily cap.
 
 There is deliberately **no `CNAME` file**. Adding one would make this copy
 redirect to pophealth.uk, which is the one thing it must not do.
@@ -56,23 +59,14 @@ git commit -m "Refresh mirror"
 git push
 ```
 
-`sync-mirror.ps1` copies the served files across and reapplies both differences
-above. It fails loudly if the main repo has changed either of the lines it
-patches, rather than quietly publishing an indexable copy or a broken Ask
-panel.
+`sync-mirror.ps1` copies the served files across and reapplies the `noindex`
+tag. It fails loudly if the main repo has changed the line it patches, rather
+than quietly publishing an indexable copy.
 
 The main repo refreshes its data monthly through a scheduled workflow. This
 mirror does not follow automatically, so run the sync after a data refresh if
 you want the two in step. To automate it later, add a step to the main repo's
 `refresh-data.yml` that pushes the served files here using a deploy key.
-
-## Turning the Ask panel on here
-
-1. Add `https://harv334.github.io` to `ALLOWED_ORIGINS` in
-   `worker/wrangler.toml` in the main repo.
-2. Redeploy the Worker.
-3. Put the Worker URL back into `ASSISTANT_ENDPOINT` in
-   `data/map/assistant.js`, and update `sync-mirror.ps1` to match.
 
 ## Licence
 

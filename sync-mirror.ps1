@@ -2,16 +2,19 @@
   Refresh this mirror from the main repo.
 
   The mirror is a copy of the files pophealth.uk serves, nothing else: no
-  pipeline, no parquet, no history. Two files differ from the originals on
-  purpose, and this script reapplies both differences after every copy so they
+  pipeline, no parquet, no history. One file differs from the original on
+  purpose, and this script reapplies that difference after every copy so it
   cannot be lost in a refresh:
 
     index.html            robots meta becomes noindex
-    data/map/assistant.js ASSISTANT_ENDPOINT blanked
 
-  Both patches fail loudly if the text they expect is missing, which is the
-  point: if the main repo changes either line, this stops rather than quietly
-  publishing an indexable copy or a panel that 403s.
+  The patch fails loudly if the text it expects is missing, which is the point:
+  if the main repo changes that line, this stops rather than quietly publishing
+  an indexable copy.
+
+  data/map/assistant.js is copied across unchanged. The Worker's
+  ALLOWED_ORIGINS already lists https://harv334.github.io, so the Ask panel
+  works here exactly as it does on the live site.
 
   Usage, from this folder:
       .\sync-mirror.ps1
@@ -92,26 +95,6 @@ Patch (Join-Path $dst "index.html") `
   '<meta name="robots" content="index, follow, max-image-preview:large">' `
   $noindexNote.TrimEnd() `
   "index.html -> noindex"
-
-$endpointNote = @'
-// MIRROR: deliberately empty, so the Ask panel does not appear here.
-//
-// The Worker's ALLOWED_ORIGINS only lists https://pophealth.uk and
-// https://www.pophealth.uk, so a question asked from github.io comes back 403
-// "Origin not allowed". A panel that is present but always fails is worse than
-// no panel, and assistant.js already treats an empty endpoint as "no panel,
-// map unaffected".
-//
-// To switch it on here: add https://harv334.github.io to ALLOWED_ORIGINS in
-// worker/wrangler.toml, redeploy the Worker, then put the URL back on the line
-// below. The endpoint is not a secret; the API key lives only in the Worker.
-var ASSISTANT_ENDPOINT = "";
-'@
-
-Patch (Join-Path $dst "data\map\assistant.js") `
-  'var ASSISTANT_ENDPOINT = "https://pophealthmapai.sevilleharvey.workers.dev";' `
-  $endpointNote.TrimEnd() `
-  "assistant.js -> endpoint blanked"
 
 # A CNAME here would make this mirror redirect to pophealth.uk, which is the
 # one thing it must never do.
