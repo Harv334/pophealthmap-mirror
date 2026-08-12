@@ -158,7 +158,11 @@
   .main { display: grid; grid-template-columns: auto minmax(0, 1fr); overflow: hidden; min-height: 0; min-width: 0; }
 
   /* ── Sidebar ── CSS Grid: native layout guarantees [focus] [tabs] [flexible pane] [footer] stack. No JS measurement needed. */
-  .sidebar { width: 268px; border-right: 1px solid #E8EDEE; flex-shrink: 0; background: #fff; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; grid-template-areas: "focus" "tabs" "pane" "footer"; height: 100%; min-height: 0; overflow: hidden; }
+  .sidebar { width: 268px; border-right: 1px solid #E8EDEE; flex-shrink: 0; background: #fff; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; grid-template-areas: "focus" "tabs" "pane" "footer"; height: 100%; min-height: 0; overflow: hidden; transition: width .18s ease; }
+  /* Collapsed to nothing, so the map gets the whole window. The same button
+     that opens the drawer on a phone does this on a desktop: one control, and
+     the same idea behind it, which is that the panel is optional. */
+  .sidebar.collapsed { width: 0; border-right: 0; }
   .sidebar > .nbfocus-bar { grid-area: focus; }
   .sidebar > .sb-tabs     { grid-area: tabs; }
   /* Panes scroll. They used to be overflow:hidden, with the only scrollable
@@ -312,6 +316,11 @@
 
   /* ── Status bar ── */
   .sbar { background: #fff; border-top: 1px solid #E8EDEE; padding: 4px 14px; font-size: 10px; color: #768692; display: flex; justify-content: space-between; flex-shrink: 0; }
+  .sbar-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+  .sbar-btn { appearance: none; background: none; border: 0; padding: 0; cursor: pointer;
+    font: inherit; font-size: 10px; color: #005EB8; text-decoration: underline;
+    text-underline-offset: 2px; }
+  .sbar-btn:hover { color: #003087; }
 
   /* ── Leaflet overrides ── */
   .leaflet-popup-content-wrapper { border-radius: 8px !important; box-shadow: 0 2px 12px rgba(0,0,0,.12) !important; border: none !important; padding: 0 !important; overflow: hidden; }
@@ -367,15 +376,93 @@
   .layer-section { padding:10px 13px; border-bottom:1px solid #E8EDEE; flex-shrink:0; }
 
   /* ── Responsive ── */
-  @media (max-width: 700px) {
-    .sidebar { width: 220px; }
+  /* Hamburger. Present in the markup at every width, shown only once the
+     sidebar becomes a drawer, so there is never a drawer with no way in. */
+  /* Shown at every width now: a drawer toggle on a phone, a collapse toggle
+     on a desktop. */
+  .hdr-menu { display: inline-flex; appearance: none; background: none; border: 1px solid #DDE1E4;
+    border-radius: 8px; padding: 6px 9px; cursor: pointer; line-height: 0; flex: 0 0 auto; }
+  .hdr-menu:hover { border-color: #005EB8; }
+  .hdr-menu svg { display: block; }
+  .sb-scrim { position: fixed; inset: 0; background: rgba(33,43,50,.45); z-index: 3900;
+    display: none; }
+  .sb-scrim.on { display: block; }
+  .sb-tools { display: none; }
+
+  /* Below this width the sidebar stops being a column beside the map and
+     becomes a drawer over it.
+     At 500px of viewport the sidebar was taking 220 of them, permanently, and
+     the ward bar covered 65% of what was left, so the map, which is the thing
+     being looked at, had about a quarter of the screen. */
+  @media (max-width: 760px) {
+    .main { grid-template-columns: minmax(0, 1fr); }
+
+    /* Flex rather than grid: the named grid areas assume a fixed set of
+       children, and the toolbar moves in here at this width. DOM order is
+       already the order these belong in. */
+    .sidebar {
+      position: fixed; top: 0; bottom: 0; left: 0;
+      width: min(86vw, 330px); z-index: 4000;
+      display: flex; flex-direction: column;
+      transform: translateX(-100%); transition: transform .22s ease;
+      box-shadow: 8px 0 32px rgba(33,43,50,.22); border-right: 1px solid #E8EDEE;
+    }
+    .sidebar.open { transform: none; }
+    /* The desktop collapse does not apply here: at this width the drawer's
+       own transform is what hides it, and a zero width would leave nothing
+       to slide in. */
+    .sidebar.collapsed { width: min(86vw, 330px); border-right: 1px solid #E8EDEE; }
+    .sidebar > .tab-pane.active { flex: 1 1 auto; min-height: 0; }
+    .sidebar > .sb-sec { flex: 0 0 auto; }
     .nbadges { display: none; }
     /* Three segments plus a label is too much badge for a phone. The label
        goes, the segments stay: they are the control, the word "Viewing" is
-       only a caption for it. */
+       only a caption for it.
+       These came from the old 700px block that the drawer replaced, and have
+       moved up to 760 with it: below this width the layout is in phone mode,
+       and the badge should be too rather than staying full size for the 60px
+       in between. */
     .dl-badge { top: 8px; right: 8px; padding: 5px 6px; gap: 5px; }
     .dl-badge-label { display: none; }
     .dl-seg button { padding: 4px 7px; font-size: 10.5px; }
+
+    /* The header was 137px, a sixth of the viewport, before any content. The
+       instruction line goes: the tour now says all of it, at more length, to
+       exactly the people who needed it. */
+    .hdr { padding: 6px 10px; gap: 8px; }
+    .hdr-sub { display: none; }
+    .hdr-logo { font-size: 14px; }
+    .hdr-menu { display: inline-flex; }
+    /* Moved into the drawer, not duplicated: one set of controls, relocated. */
+    .sb-tools { display: block; padding: 9px 10px; border-bottom: 1px solid #E8EDEE;
+      background: #FBFCFD; flex: 0 0 auto; }
+    .sb-tools-hd { display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 8px; font-size: 10px; text-transform: uppercase; letter-spacing: .06em;
+      font-weight: 600; color: #768692; }
+    .sb-close { appearance: none; background: none; border: 0; cursor: pointer;
+      color: #4C6272; font-size: 22px; line-height: 1; padding: 0 4px; margin: -4px -4px 0 0; }
+    .sb-close:hover { color: #DA291C; }
+    .sb-tools .hdr-right { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .sb-tools .hdr-search { grid-column: 1 / -1; }
+    .sb-tools .hdr-search input { width: 100%; }
+    .sb-tools .tb-btn { width: 100%; justify-content: center; }
+    .sb-tools .tb-sep { display: none; }
+
+    /* Five modes will not fit across a phone, so the rail scrolls instead of
+       silently losing the ones on the end. */
+    .mode-rail { overflow-x: auto; flex-wrap: nowrap; padding: 0 10px;
+      scrollbar-width: none; -ms-overflow-style: none; }
+    .mode-rail::-webkit-scrollbar { display: none; }
+    .mode-btn { flex: 0 0 auto; padding: 10px 11px 9px; font-size: 12.5px; }
+
+    /* Same for the tab strip, which was 267px wide inside a 220px sidebar and
+       was cutting the Ward tab off the end. */
+    .sb-tabs { overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; }
+    .sb-tabs::-webkit-scrollbar { display: none; }
+    .sb-tab { flex: 0 0 auto; padding: 9px 13px; }
+
+    /* The AI panel is a floating card on a desktop and a full sheet here. */
+    #ai-panel { left: 8px; right: 8px; width: auto; top: 8px; }
   }
 
 /* Hover tooltips on map markers */
@@ -542,7 +629,9 @@
   /* Accent placement. The palette alone reads as a grey refresh; the design
      carries its identity in a few structural blue moments, not in tinting
      everything. Keep it to the header rule, the wordmark and section heads. */
-  header, .hdr { border-top: 4px solid var(--nhs-blue); }
+  /* The 4px blue rule across the top has gone. It was pure decoration and it
+     was costing four rows of pixels on every screen, which the map wanted
+     more than the identity did. The wordmark still carries the colour. */
   .hdr-logo { color: var(--nhs-dark); letter-spacing: -.01em; }
   .section-h { color: var(--nhs-dark); }
   .sb-tabs { background: var(--paper-2); }
@@ -639,7 +728,7 @@
   .ws-sheet.collapsed { max-height: 66px; }
   .ws-handle { width: 36px; height: 4px; background: var(--line); border-radius: 2px;
     position: absolute; top: 6px; left: 50%; transform: translateX(-50%); pointer-events: none; }
-  .ws-head { padding: 14px 16px 12px; display: flex; align-items: center; gap: 12px;
+  .ws-head { padding: 11px 15px 10px; display: flex; align-items: center; gap: 12px;
     border-bottom: 1px solid var(--line); cursor: pointer; flex-shrink: 0; }
   .ws-head:hover { background: var(--paper-2); }
   .ws-title { flex: 1; min-width: 0; }
@@ -662,18 +751,28 @@
   .ws-close { appearance: none; background: none; border: 0; cursor: pointer; color: var(--ink-3);
     font-size: 17px; line-height: 1; padding: 2px 4px; border-radius: 6px; }
   .ws-close:hover { color: var(--nhs-red); background: var(--nhs-light); }
-  .ws-body { padding: 14px 16px 16px; overflow: auto; flex: 1; min-height: 0; }
+  .ws-body { padding: 11px 14px 13px; overflow: auto; flex: 1; min-height: 0; }
+  /* On a wide screen the sentence and the figures sit beside each other.
+     Stacked, they made a 1,400px bar 250px tall, a third of the map, to hold
+     one paragraph and one row of numbers with the whole right-hand half of it
+     empty. Side by side that comes down to about 170. */
+  @media (min-width: 1100px) {
+    .ws-body { display: flex; align-items: flex-start; gap: 14px; }
+    .ws-body .ws-insight { flex: 1 1 44%; min-width: 0; }
+    .ws-body .ws-strip { flex: 1 1 56%; margin-top: 0; min-width: 0; }
+    .ws-body .ws-pins { flex: 1 1 100%; margin-top: 4px; }
+  }
   .ws-insight { border-left: 3px solid var(--nhs-blue); background: var(--nhs-light);
-    border-radius: 6px; padding: 10px 13px; font-size: 12.5px; line-height: 1.55; color: var(--ink-2); }
+    border-radius: 6px; padding: 8px 11px; font-size: 12px; line-height: 1.5; color: var(--ink-2); }
   .ws-insight strong { color: var(--ink); font-weight: 600; }
-  .ws-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
-    gap: 8px; margin-top: 12px; }
+  .ws-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+    gap: 7px; margin-top: 10px; }
   .ws-kpi { background: var(--paper); border: 1px solid var(--line); border-radius: 10px;
-    padding: 9px 11px; min-width: 0; }
+    padding: 7px 10px; min-width: 0; }
   .ws-kpi .ws-k-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: .05em;
     color: var(--ink-3); font-weight: 600; white-space: nowrap; overflow: hidden;
     text-overflow: ellipsis; }
-  .ws-kpi .ws-k-num { font-family: 'Inter Tight', Inter, sans-serif; font-size: 21px;
+  .ws-kpi .ws-k-num { font-family: 'Inter Tight', Inter, sans-serif; font-size: 19px;
     font-weight: 600; letter-spacing: -.02em; line-height: 1.15; margin-top: 2px;
     font-variant-numeric: tabular-nums; }
   .ws-kpi .ws-k-num span { font-size: 13px; font-weight: 500; margin-left: 1px; }
@@ -1036,6 +1135,88 @@
     border: 1px solid var(--line); border-radius: 6px; background: var(--paper); color: var(--ink);
     min-width: 0; }
 
+  /* ── Narrow-screen component overrides ────────────────────────────────────
+     These sit at the end of the stylesheet on purpose. Every rule below
+     overrides a component declared further down than the layout media query
+     up top, and at equal specificity the later rule wins, so putting them
+     with the rest of the responsive block left .cmp-bar on its desktop insets
+     and .cmp-cards at four across on a phone. They belong after what they
+     override, not next to what they relate to. */
+  @media (max-width: 760px) {
+    /* ── The ward bar as a real mobile sheet ──
+       It opened at full height, which on a phone put a 342px panel over a
+       683px map and covered nearly half of it before you had asked for
+       anything. It opens at peek now: the ward's name, its borough and its
+       deprivation, which is the answer to "what did I just tap". Dragging the
+       handle up gives the rest. */
+    .ws-sheet, .cmp-bar, .tour-strip { left: 8px; right: 8px; bottom: 8px; }
+    .ws-sheet { max-height: 76vh; max-height: 76dvh; }
+    /* Peek is exactly the head. A fixed 150px left the insight card sliced
+       through the middle of a word at the bottom edge, which reads as a
+       rendering fault rather than as "there is more below". The handle is what
+       says there is more. */
+    .ws-sheet.peek { max-height: none; }
+    .ws-sheet.peek .ws-body { display: none; }
+    .ws-sheet.collapsed { max-height: 58px; }
+    .ws-head { padding: 11px 12px 10px; gap: 8px; touch-action: pan-y; }
+    .ws-title h2 { font-size: 16px; }
+    .ws-body { padding: 12px 12px 14px; }
+    /* Two columns of figures rather than one long strip of six. */
+    .ws-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+    /* Open profile is the one that leads somewhere; the other two are
+       secondary and stop competing for a 390px row. */
+    .ws-acts { width: 100%; gap: 5px; }
+    .ws-acts .ws-btn { flex: 1 1 auto; padding: 8px 6px; font-size: 11px; }
+    .ws-sheet.peek .ws-acts #ws-pin,
+    .ws-sheet.peek .ws-acts #ws-pdf,
+    .ws-sheet.collapsed .ws-acts { display: none; }
+    /* A bigger grab area for the drag, because a 4px bar is not a target. */
+    .ws-handle { width: 52px; height: 5px; top: 7px; }
+    .ws-sheet::before { content: ''; position: absolute; top: 0; left: 0; right: 0;
+      height: 20px; }
+    .cmp-bar { max-height: 76vh; max-height: 76dvh; }
+    /* Four cards across is a desktop shape. */
+    .cmp-cards { grid-template-columns: minmax(0, 1fr); }
+    .tour-strip { padding: 11px 13px 12px; }
+    .tour-narr { font-size: 12.5px; margin-bottom: 10px; }
+    .tour-ctrls { gap: 6px; }
+    .tour-next-lbl { display: none; }
+
+    /* ── The bottom-right corner ──
+       The Ask button, the Fingertips notice, the legend and the OSM
+       attribution were four things independently claiming the same corner of
+       a 390px screen. They lift above the sheet together already; here they
+       stop overlapping each other as well. */
+    #ai-toggle { right: 8px; padding: 8px 12px; font-size: 12px; }
+    #fingertips-banner { left: 8px; right: 8px !important; max-width: none;
+      font-size: 11px; padding: 8px 10px; }
+    .map-legend-strip { left: 8px; right: 8px; transform: none; max-width: none;
+      font-size: 10.5px; padding: 5px 9px; }
+    .map-legend-strip .mls-label { max-width: 45%; }
+    /* The viewing strip is scope only now; keep it to one line. */
+    .viewing-strip { padding: 4px 10px 5px; font-size: 11px; }
+  }
+
+  /* Coarse pointers get bigger targets, whatever the width. A 25px row is a
+     comfortable click and an awkward tap. */
+  @media (pointer: coarse) {
+    .lrow { padding: 9px 6px; min-height: 40px; }
+    .ov-opt { padding: 10px 10px 10px 16px; min-height: 40px; }
+    .ov-grp-hd { padding: 11px 10px; }
+    /* Padding alone left these at 35px: the text is 11px and the line box goes
+       with it, so the box needs a floor of its own. */
+    .sb-tab { padding: 12px 13px; min-height: 44px; display: flex;
+      align-items: center; justify-content: center; }
+    .dir-item { padding: 10px 14px; }
+    .q-chip, .ws-btn, .tb-btn { min-height: 34px; }
+    .cmp-pin { padding: 11px 10px; }
+    /* Pinch and the +/- control both zoom; the slider is a third way to do
+       the same thing, taking up room on the screen with the least of it.
+       Targeted by id rather than :has(), which is well supported now but is
+       not worth depending on to hide one row. */
+    #zoom-row { display: none; }
+  }
+
 </style>
 
 <!-- Structured data. Two graphs: the site itself, and the data behind it.
@@ -1126,6 +1307,11 @@
   <!-- Header -->
   <div class="hdr">
     <div class="hdr-left">
+      <button type="button" class="hdr-menu" id="hdr-menu" aria-label="Open the panel"
+              aria-expanded="false" aria-controls="sidebar" title="Layers, overlays and modes">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#212B32"
+             stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
       <div>
         <h1 class="hdr-logo">London Population Health Mapping<span class="dev-badge" title="This tool is still in development">In development</span></h1>
         <div class="hdr-sub" title="Click a ward for its headline figures, then Open profile for the full panel · use the Overlay tab to colour the map by an indicator · the VCSE tab maps charities and Community Interest Companies">Click a ward for its headline figures · pick an Overlay to colour-code · point layers in the sidebar</div>
@@ -1149,7 +1335,6 @@
     <button type="button" class="mode-btn" role="tab" data-mode="explore" aria-selected="true">Explore</button>
     <button type="button" class="mode-btn" role="tab" data-mode="query" aria-selected="false">Query</button>
     <button type="button" class="mode-btn" role="tab" data-mode="compare" aria-selected="false">Compare</button>
-    <button type="button" class="mode-btn" role="tab" data-mode="tour" aria-selected="false">Take a tour</button>
     <button type="button" class="mode-btn" role="tab" data-mode="directory" aria-selected="false">Directory</button>
   </div>
 
@@ -1166,7 +1351,23 @@
   <div class="main">
 
     <!-- Sidebar -->
-    <div class="sidebar">
+    <div class="sb-scrim" id="sb-scrim" hidden></div>
+    <div class="sidebar" id="sidebar">
+      <!-- Where the header toolbar lands when the sidebar becomes a drawer.
+           The controls are moved into it, not copied, so there is only ever
+           one Reset button in the document. -->
+      <div class="sb-tools" id="sb-tools">
+        <!-- The drawer covers the header, so the hamburger that opened it is
+             behind it. Tapping outside works, but a panel with no visible way
+             out is a panel people get stuck in. -->
+        <div class="sb-tools-hd">
+          <!-- Not "Map controls": that is the sliders at the bottom of this
+               same drawer, and two sections under one name is worse than a
+               vaguer one. -->
+          <span>Search and tools</span>
+          <button type="button" class="sb-close" id="sb-close" aria-label="Close the panel">&times;</button>
+        </div>
+      </div>
       <div class="nbfocus-bar" id="nbfocus-bar" style="display:none">
         <button class="nbfocus-btn all active" data-nbhd="all" onclick="setNbhdFocus('all')">All wards</button>
       </div>
@@ -1299,7 +1500,6 @@
           <div style="font-size:10.5px;color:#888;margin:4px 0 2px 24px;line-height:1.4">
             VCSE = registered charities · CIC = Community Interest Companies (community-anchored businesses)
           </div>
-          <div class="cov-note" style="margin-left:24px">Charities cover all of London. CICs cover North West London only, so a blank borough means not yet collected.</div>
         </div>
         <div class="sb-sec" style="padding-bottom:8px">
           <div class="sb-lbl">Filter by area</div>
@@ -1331,6 +1531,13 @@
             <div class="sb-lbl" style="margin-bottom:0">Filter by tags</div>
             <button type="button" id="vcse-tag-clear" style="font-size:11px;color:#666;background:none;border:none;cursor:pointer;padding:0;text-decoration:underline;display:none">clear</button>
           </div>
+          <!-- The tags come from the Charity Commission's own classification of
+               what a charity does, who it helps and how. CICs are registered
+               with Companies House and carry none of it, so a tag filter is
+               not a filter that can include or exclude them. Saying so here
+               stops the count looking like it has lost the CICs. -->
+          <div class="cov-note" style="margin:0 0 6px">These tags are the Charity Commission's own, so they filter
+            registered charities only. Community Interest Companies are not tagged and are unaffected.</div>
           <details class="vcse-tag-group" data-fam="wt">
             <summary>What they do <span class="vcse-tag-count"></span></summary>
             <div class="vcse-tag-list"></div>
@@ -1712,7 +1919,7 @@
           <input type="range" id="border-weight" min="1" max="10" value="1" step="1">
           <span class="opacity-val" id="border-weight-val">1</span>
         </div>
-        <div class="opacity-row" style="margin-top:6px">
+        <div class="opacity-row" id="zoom-row" style="margin-top:6px">
           <label>Zoom</label>
           <input type="range" id="zoom-slider" min="1" max="10" value="3" step="1">
           <span class="opacity-val" id="zoom-slider-val">3</span>
@@ -1826,7 +2033,15 @@
       <a class="sbar-link" href="mailto:contact@pophealth.uk">contact@pophealth.uk</a>
       <span id="src-lbl"></span>
     </span>
-    <span id="data-date"></span>
+    <span class="sbar-right">
+      <!-- The tour used to sit in the mode rail beside Explore, Query, Compare
+           and Directory, which are the four things you work in. It is not one
+           of those: it runs once, over the top of whichever of them you are
+           in. Down here it is out of the way of the row it was crowding, and
+           still on screen for anyone who wants it a second time. -->
+      <button type="button" class="sbar-btn" id="sbar-tour">Take a tour</button>
+      <span id="data-date"></span>
+    </span>
   </div>
 
 </div><!-- .app -->
@@ -2045,6 +2260,23 @@ const OV_CFG = {
 
 // Transparency state — controlled by sliders
 // fillOpacityMult is an absolute fill opacity in [0,1]; 0 = fully transparent, 1 = opaque.
+/**
+ * The Border slider, as the layer you are looking at actually sees it.
+ *
+ * borderWeightMult was read by the ward styler and by nothing else, so the
+ * slider only ever thickened ward outlines. Switch to LSOA or MSOA and it did
+ * nothing at all, which is worse than it looks: those are the two levels where
+ * the boundaries are the whole point of the layer, because neither of them is
+ * carrying a choropleth.
+ *
+ * The slider runs 1 to 10 and borderWeightMult is that halved, so this turns
+ * it back into the slider's own number and scales each layer from its own
+ * resting weight. Multiplying instead would take MSOA's 1.1px to 11 at the top
+ * of the range, which is not a boundary any more, it is a wall.
+ */
+function borderStep() { return Math.max(0, borderWeightMult / 0.5); }   // 1..10
+function scaledWeight(base) { return Math.max(0.3, base + (borderStep() - 1) * 0.5); }
+
 // borderWeightMult is an absolute black-border weight in px (0 = no border).
 let fillOpacityMult = 0.40;  // matches the #fill-opacity slider default of 40
 let borderWeightMult = 0.5;  // matches the #border-weight slider default of 1 on the 1–10 scale (0.5 px)
@@ -5474,6 +5706,113 @@ function _applyBoroughSolo() {
 })();
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   NARROW-SCREEN DRAWER
+
+   Below 760px the sidebar is a drawer over the map rather than a column beside
+   it, and the header toolbar moves into it. The toolbar is moved rather than
+   duplicated: two Reset buttons in one document would be two things to keep in
+   step, and only one of them would ever be tested.
+
+   The modes live in the sidebar, so choosing one on a phone has to open the
+   drawer, or Query and Compare would appear to do nothing at all.
+   ═══════════════════════════════════════════════════════════════════════════ */
+(function _narrowDrawer() {
+  const mq = window.matchMedia('(max-width: 760px)');
+  const sidebar = document.getElementById('sidebar');
+  const scrim = document.getElementById('sb-scrim');
+  const tools = document.getElementById('sb-tools');
+  const btn = document.getElementById('hdr-menu');
+  const hdrRight = document.querySelector('.hdr-right');
+  const hdr = document.querySelector('.hdr');
+  if (!sidebar || !scrim || !btn || !hdrRight) return;
+
+  function narrow() { return mq.matches; }
+
+  function setOpen(on) {
+    if (!narrow()) on = false;
+    // One at a time. The drawer and a full-height ward sheet are both trying
+    // to be the thing on screen, and on a phone there is only room for one.
+    if (on && window.PH_SHEET && window.PH_SHEET.shrink) window.PH_SHEET.shrink();
+    sidebar.classList.toggle('open', on);
+    scrim.classList.toggle('on', on);
+    scrim.hidden = !on;
+    btn.setAttribute('aria-expanded', String(on));
+    // Leaflet caches the container size; without this the map keeps the
+    // dimensions it had before the layout changed under it.
+    if (typeof map !== 'undefined' && map) setTimeout(() => map.invalidateSize(), 260);
+  }
+  function isOpen() { return sidebar.classList.contains('open'); }
+
+  function relocate() {
+    if (narrow()) {
+      if (hdrRight.parentNode !== tools) tools.appendChild(hdrRight);
+    } else if (hdrRight.parentNode !== hdr) {
+      hdr.appendChild(hdrRight);
+      setOpen(false);
+    }
+    if (typeof map !== 'undefined' && map) setTimeout(() => map.invalidateSize(), 60);
+  }
+
+  /* On a desktop the same button collapses the panel instead of drawering it.
+     The panel is optional either way; the difference is only that there is
+     room to slide it out of rather than over the map. Remembered, because
+     someone who wants the whole window for the map wants it next time too. */
+  const COLLAPSE_KEY = 'phPanelCollapsed';
+  function setCollapsed(on) {
+    sidebar.classList.toggle('collapsed', on);
+    btn.setAttribute('aria-expanded', String(!on));
+    btn.title = on ? 'Show the panel' : 'Hide the panel';
+    try { window.localStorage.setItem(COLLAPSE_KEY, on ? '1' : ''); } catch (e) {}
+    if (typeof map !== 'undefined' && map) setTimeout(() => map.invalidateSize(), 220);
+  }
+  function isCollapsed() { return sidebar.classList.contains('collapsed'); }
+  try {
+    if (window.localStorage.getItem(COLLAPSE_KEY)) {
+      sidebar.classList.add('collapsed');
+      btn.setAttribute('aria-expanded', 'false');
+      btn.title = 'Show the panel';
+    }
+  } catch (e) { /* private mode: starts expanded */ }
+
+  btn.addEventListener('click', () => {
+    if (narrow()) setOpen(!isOpen());
+    else setCollapsed(!isCollapsed());
+  });
+  scrim.addEventListener('click', () => setOpen(false));
+  const closeBtn = document.getElementById('sb-close');
+  if (closeBtn) closeBtn.addEventListener('click', () => setOpen(false));
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && isOpen()) setOpen(false);
+  });
+
+  // Choosing a mode reveals the panel, because that is where the mode lives.
+  // A collapsed panel makes Query, Compare and Directory look like dead
+  // buttons on a desktop in exactly the way a closed drawer does on a phone.
+  // Explore is the map itself, so on a phone it closes the drawer; on a
+  // desktop it leaves a collapsed panel collapsed, which is a state the user
+  // chose rather than one to undo for them.
+  document.querySelectorAll('.mode-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      const wantsPanel = ['query', 'compare', 'directory'].indexOf(b.dataset.mode) !== -1;
+      if (narrow()) setOpen(wantsPanel);
+      else if (wantsPanel && isCollapsed()) setCollapsed(false);
+    });
+  });
+
+  // A tap on the map is a tap on the thing the drawer is covering.
+  if (typeof map !== 'undefined' && map) {
+    map.on('click', () => { if (narrow() && isOpen()) setOpen(false); });
+  }
+
+  if (mq.addEventListener) mq.addEventListener('change', relocate);
+  else if (mq.addListener) mq.addListener(relocate);
+  relocate();
+
+  window.PH_DRAWER = { open: () => setOpen(true), close: () => setOpen(false),
+                       isOpen: isOpen, narrow: narrow };
+})();
+
+/* ═══════════════════════════════════════════════════════════════════════════
    OVERLAY PICKER
 
    The same 103 indicators as the dropdown, as tick boxes under collapsible
@@ -5817,7 +6156,9 @@ function imdStyle(feat, state) {
   // Navy blue palette — sits cleanly alongside the black ward outlines so
   // users can tell ward (black) and LSOA (navy) borders apart at a glance.
   const base = {
-    color: '#1E4B8E', weight: 1.2,
+    // Follows the Border slider from its own resting 1.2px, the same way the
+    // ward outlines follow it from theirs.
+    color: '#1E4B8E', weight: scaledWeight(1.2),
     fillColor: (lsoaIMDColour && d) ? (imdDecileColor(d) || '#ccc') : '#ccc',
     fillOpacity: lsoaIMDColour ? 0.45 : 0.05, opacity: 0.75,
   };
@@ -6821,7 +7162,12 @@ function loadMsoaBoundaries() {
     .then(gj => {
       if (!gj || !gj.features) { _msoaLoading = null; return null; }
       msoaLyr = L.geoJSON(gj, {
-        style: { color: '#7A2E8E', weight: 1.1, fill: false, opacity: 0.85 },
+        // A function, not a literal, so _restyleAll can re-evaluate it when
+        // the Border slider moves. As a literal it was fixed at 1.1px for the
+        // life of the layer.
+        style: function () {
+          return { color: '#7A2E8E', weight: scaledWeight(1.1), fill: false, opacity: 0.85 };
+        },
         onEachFeature: (feat, lyr) => {
           const p = feat.properties || {};
           lyr.bindTooltip(
@@ -7233,22 +7579,32 @@ function _setDataLevel(level, opts) {
       b.classList.toggle('active', b.dataset.dl === level);
     }
   });
-  // MSOA is a geography, not a shading level. Ward figures are what the map
-  // colours, and they stay coloured underneath: MSOAs are built from whole
-  // LSOAs but 41% of LSOAs cross a ward line, so MSOA edges and ward edges
-  // agreeing is a coincidence. Say so once, each time the level is chosen,
-  // rather than letting someone wait for a recolour that is never coming.
+  // MSOA has no indicator data of its own on this page, so choosing it draws
+  // the geography and nothing shades it. Now that the badge is exclusive and
+  // the ward layer goes off with it, that means the choropleth goes too, and
+  // it is better to say so than to let someone watch for a recolour that is
+  // never coming.
   if (level === 'msoa' && !opts.fromMsoaToggle) {
-    _dlHint('MSOA boundaries drawn. Shading stays at ward level.', 3200);
+    var _ovOn = typeof curOv !== 'undefined' && curOv && curOv !== 'none';
+    _dlHint(_ovOn
+      ? 'MSOA boundaries only. The shading is drawn on the ward layer, so it is off too.'
+      : 'MSOA boundaries drawn. There is no MSOA-level indicator to shade them with.', 3600);
   }
 
   if (opts.fromOverlay || opts.fromLsoaToggle || opts.fromMsoaToggle) return;  // avoid feedback loops
 
   // Drive the two boundary layers to match the level. Guarded, because each
   // checkbox has its own listener that syncs the badge back the other way.
+  // The badge is a segmented control, so it picks one geography and turns the
+  // other two off. Ward was previously left alone, which meant choosing MSOA
+  // drew MSOA boundaries on top of the ward ones and the box for the level you
+  // had just left stayed ticked.
+  //
+  // Ward is the exception in one direction only: it carries the choropleth, so
+  // leaving Ward drops the shading with it. That is what the hint above says.
   _dlDriving = true;
   try {
-    const want = { tlsoa: level === 'lsoa', tmsoa: level === 'msoa' };
+    const want = { tnw: level === 'ward', tlsoa: level === 'lsoa', tmsoa: level === 'msoa' };
     for (const id in want) {
       const box = document.getElementById(id);
       if (!box || box.checked === want[id]) continue;
@@ -7360,8 +7716,11 @@ function _refreshUI() {
           && typeof NEIGHBOURHOODS !== 'undefined' && NEIGHBOURHOODS[focusedNbhd]) {
         parts.push(`nbhd <b>${NEIGHBOURHOODS[focusedNbhd].label}</b>`);
       }
-      parts.push('<b>' + (currentDataLevel === 'lsoa' ? 'LSOA'
-                        : currentDataLevel === 'msoa' ? 'MSOA' : 'Ward') + '</b> mode');
+      // The level is not repeated here. The Viewing badge in the corner of the
+      // map is the control for it and shows which one is active, so the strip
+      // saying "Ward mode" a second time under the word "Viewing" was the same
+      // fact twice, in the two places most likely to be read together.
+      // The strip's job is the scope: where you are and what is drawn on it.
       if (typeof curOv !== 'undefined' && curOv && curOv !== 'none') {
         parts.push(`overlay <b>${_ovLabel(curOv)}</b>`);
       }
@@ -8634,6 +8993,9 @@ function _restyleAll() {
   if (typeof lsoaLyr !== 'undefined' && lsoaLyr) lsoaLyr.eachLayer(l =>
     l.setStyle(imdStyle(l.feature,
       l.feature === (selLSOA && selLSOA.feature) ? 'selected' : 'default')));
+  // The MSOA layer was never in here, so nothing the sliders did reached it.
+  if (typeof msoaLyr !== 'undefined' && msoaLyr) msoaLyr.setStyle(
+    { color: '#7A2E8E', weight: scaledWeight(1.1), fill: false, opacity: 0.85 });
 }
 (function wireSliders() {
   const fo = document.getElementById('fill-opacity');
@@ -9641,7 +10003,15 @@ loadData();
   var closeBtn = $('ws-close');
   var mapWrap = $('map-wrap');
 
-  var STATE_H = [342, 174, 66];   // full, peek, collapsed
+  // full, peek, collapsed. The phone gets its own set: a fixed 342px panel is
+  // half of a 683px map, and the CSS caps the full state in dvh, so the
+  // numbers here have to follow or the lift under it would be wrong.
+  function isNarrow() { return window.matchMedia('(max-width: 760px)').matches; }
+  function stateHeights() {
+    return isNarrow()
+      ? [Math.round((window.innerHeight || 800) * 0.76), 150, 58]
+      : [342, 174, 66];
+  }
   var sheetState = 0;
   var currentWard = null;
   // Four, from the design file: it fixes the comparison grid at four across
@@ -9661,7 +10031,8 @@ loadData();
     if (!mapWrap) return;
     var open = sheet.classList.contains('open');
     mapWrap.classList.toggle('has-sheet', open);
-    var h = open ? Math.min(sheet.offsetHeight || STATE_H[sheetState], STATE_H[sheetState]) : 0;
+    var cap = stateHeights()[sheetState];
+    var h = open ? Math.min(sheet.offsetHeight || cap, cap) : 0;
     var px = (open ? h + 16 : 0) + 'px';
     mapWrap.style.setProperty('--sheet-lift', px);
     // Also on the root, for the development banner, which is position:fixed
@@ -9682,10 +10053,64 @@ loadData();
   });
 
   function cycle() { sheetState = (sheetState + 1) % 3; applyState(); }
+  function setSheetState(n) {
+    n = Math.max(0, Math.min(2, n));
+    if (n === sheetState) return;
+    sheetState = n;
+    applyState();
+    // On a phone the sheet at full height and the drawer are both trying to be
+    // the thing you are looking at. One at a time.
+    if (isNarrow() && n === 0 && window.PH_DRAWER) window.PH_DRAWER.close();
+  }
+
   headEl.addEventListener('click', function (e) {
     if (e.target.closest('.ws-acts')) return;   // buttons act, they do not resize
+    if (headEl._dragged) { headEl._dragged = false; return; }
     cycle();
   });
+
+  /* Drag the handle.
+     Click-to-cycle is fine with a mouse and unguessable with a thumb: there is
+     a handle drawn at the top of the sheet that looks exactly like every other
+     sheet handle on a phone, and it did nothing. Up opens, down closes, and a
+     tap still cycles so nothing is taken away. */
+  (function dragSheet() {
+    var startY = null, startState = 0;
+    headEl.addEventListener('pointerdown', function (e) {
+      if (e.target.closest('.ws-acts')) return;
+      startY = e.clientY;
+      startState = sheetState;
+      headEl._dragged = false;
+    });
+    headEl.addEventListener('pointerup', function (e) {
+      if (startY === null) return;
+      var dy = e.clientY - startY;
+      startY = null;
+      if (Math.abs(dy) < 24) return;            // a tap, not a drag
+      headEl._dragged = true;                   // so the click does not also fire
+      setSheetState(startState + (dy < 0 ? -1 : 1));
+    });
+    headEl.addEventListener('pointercancel', function () { startY = null; });
+  })();
+
+  // The heights are viewport-derived on a phone, so a rotate or a resize has
+  // to re-measure or the furniture above the sheet sits at the old offset.
+  window.addEventListener('resize', function () { if (sheet.classList.contains('open')) lift(); });
+
+  /* The bar and the full profile are the same ward twice.
+     "Open profile" already stood the bar down, but the Ward tab can also be
+     reached from the tab strip and from clicking an LSOA, and either of those
+     left the ward's figures on screen in two places at once with the map
+     squeezed between them. Watching the pane catches all three routes in.
+     Peek, not closed: the bar is also the thing that says which ward the
+     profile belongs to. */
+  (function standDownForProfile() {
+    var wardPane = document.getElementById('tab-ward');
+    if (!wardPane || !window.MutationObserver) return;
+    new MutationObserver(function () {
+      if (wardPane.classList.contains('active') && sheetState === 0) setSheetState(1);
+    }).observe(wardPane, { attributes: true, attributeFilter: ['class'] });
+  })();
   headEl.addEventListener('keydown', function (e) {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); cycle(); }
   });
@@ -9819,12 +10244,21 @@ loadData();
 
     syncPinBtn();
     renderBody(w, null);
+    var wasOpen = sheet.classList.contains('open');
     sheet.classList.add('open');
-    // Restore a collapsed sheet fully. Collapsed shows the name and nothing
-    // else, and now that the sheet is the whole response to a ward click,
-    // leaving it that way means the click appears to do nothing. Peek is left
-    // alone: that one is a size the user chose and can still read.
-    if (sheetState === 2) { sheetState = 0; }
+    if (isNarrow()) {
+      // Peek is the phone's opening size: the name, the borough and the
+      // deprivation, which answers "what did I just tap" without covering the
+      // map you tapped it on. Drag up for the rest.
+      if (!wasOpen || sheetState === 2) sheetState = 1;
+      if (window.PH_DRAWER) window.PH_DRAWER.close();
+    } else if (sheetState === 2) {
+      // Restore a collapsed sheet fully. Collapsed shows the name and nothing
+      // else, and now that the sheet is the whole response to a ward click,
+      // leaving it that way means the click appears to do nothing. Peek is
+      // left alone: that one is a size the user chose and can still read.
+      sheetState = 0;
+    }
     applyState();
 
     // GP practices are not a pipeline indicator, so the count comes from a
@@ -9976,7 +10410,14 @@ loadData();
 
   // showWard() and deselectWard() call these, so the sheet follows the map's
   // own idea of what is selected rather than keeping a second one.
-  window.PH_SHEET = { show: show, hide: hide };
+  window.PH_SHEET = {
+    show: show, hide: hide,
+    // Used by the drawer to get the sheet out of its way without losing the
+    // selection, and by the tests to read the state without inferring it.
+    shrink: function () { if (sheetState === 0) setSheetState(1); },
+    state: function () { return sheetState; },
+    setState: setSheetState,
+  };
 
   /* ─────────────────────────────────────────────────────────────────────────
      COMPARE MODE
@@ -10621,6 +11062,57 @@ loadData();
     el.value = key;
     el.dispatchEvent(new Event('change', { bubbles: true }));
   }
+  /**
+   * Frame a ward without selecting it.
+   *
+   * selectWardByName also opens the ward bar, which belongs to the chapter
+   * after this one. This only moves the map.
+   */
+  function frameWard(code) {
+    if (typeof wLyr === 'undefined' || !wLyr || typeof map === 'undefined') return false;
+    var target = null;
+    wLyr.eachLayer(function (l) {
+      var p = l.feature && l.feature.properties;
+      if (p && p.WD24CD === code) target = l;
+    });
+    if (!target) return false;
+    try { map.fitBounds(target.getBounds(), { padding: [60, 60], maxZoom: 14 }); }
+    catch (e) { return false; }
+    return true;
+  }
+  /**
+   * Return the map to ward level, whatever the tour has done to it.
+   *
+   * Overlay first, then the level. An LSOA-only overlay makes the level gate
+   * refuse a move back to Ward, and rightly so, since it would hide the
+   * shading. Clearing the overlay first means there is nothing left to hide.
+   */
+  function wardLevel() {
+    setOverlay('none');
+    if (typeof _setDataLevel === 'function') _setDataLevel('ward');
+  }
+
+  /**
+   * Little Venice, Westminster.
+   *
+   * The deciles chapter says a ward figure is a mean of the neighbourhoods
+   * inside it, which only reads clearly if the neighbourhoods on screen are
+   * actually inside the ward on screen. 41% of London's LSOAs cross a ward
+   * line, so a chapter that opens on all of London is arguing against its own
+   * picture.
+   *
+   * Picked by testing every LSOA vertex against its own ward's polygon, using
+   * the same data/map blobs the browser draws, so what nests in the check
+   * nests on screen. 31 of the 704 wards qualify. This one has five LSOAs, few
+   * enough to take in at a glance, spanning deciles 1, 7 and 8: the most
+   * deprived tenth of England and the least deprived third, inside one ward,
+   * which is exactly the point the chapter is making.
+   *
+   * Held by code rather than name, because codes survive the renaming that
+   * comes with a boundary review. If the code ever stops matching, frameWard
+   * returns false and the chapter leaves the map where it was.
+   */
+  var NESTED_WARD = 'E05013799';
 
   var TOUR = [
     {
@@ -10664,6 +11156,9 @@ loadData();
         // neighbourhood level. That is the point of the chapter rather than a
         // side effect: these are real deciles, not an average of them.
         railClick('explore'); sidebarTab('overlay'); setOverlay('imd_decile');
+        // And frame a ward whose neighbourhoods are all inside it, so the
+        // sentence above can be read straight off the map.
+        frameWard(NESTED_WARD);
       },
     },
     {
@@ -10694,6 +11189,11 @@ loadData();
          '<strong>Directory</strong> lists all 23,000 services and organisations on the ' +
          'map in one searchable place.',
       go: function () {
+        // Query answers in wards. The deciles chapter left the map at
+        // neighbourhood level with the LSOA layer drawn over everything, so
+        // the matches this chapter is about would arrive underneath 4,994
+        // boundaries that have nothing to do with them.
+        wardLevel();
         railClick('query');
         if (window.PH_QUERY) window.PH_QUERY.build();
         var run = $('q-run');
@@ -10810,7 +11310,19 @@ loadData();
       mapWrap.classList.remove('touring');
       mapWrap.style.setProperty('--tour-h', '0px');
     }
-    railClick('explore');
+    // The tour drives the real controls, so it leaves real state behind: the
+    // LSOA layer from the deciles chapter, a selected ward, a query still
+    // drawn, and the map sitting on whichever ward it last visited. Ending
+    // used to leave every bit of that, so the first job after a tour was to
+    // undo it, starting with hunting down the LSOA toggle to turn off
+    // boundaries you never turned on.
+    //
+    // Reset is already the control that means "clear everything and go back to
+    // the default view", and it does it in the order that works: overlay
+    // first, so the level gate lets go of LSOA, then the layers, then the
+    // selection, then fit London. The tour ends by pressing it rather than
+    // reimplementing it and drifting from it later.
+    if (typeof _resetAll === 'function') _resetAll(); else railClick('explore');
     lift();
   }
   function tourStep(d) {
@@ -10834,6 +11346,13 @@ loadData();
       if (e.key === 'Escape') { e.preventDefault(); tourEnd(); }
     });
   }
+  // The tour no longer has a rail button, so it needs its own trigger. Bound
+  // here rather than in the rail, which is now only the four working modes.
+  var sbarTour = document.getElementById('sbar-tour');
+  if (sbarTour) sbarTour.addEventListener('click', function () {
+    if (tourAt >= 0) tourEnd(); else tourStart();
+  });
+
   window.PH_TOUR = {
     start: tourStart, end: tourEnd,
     running: function () { return tourAt >= 0; },
