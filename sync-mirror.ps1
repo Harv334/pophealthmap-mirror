@@ -37,7 +37,7 @@ if (-not (Test-Path (Join-Path $Source "index.html"))) {
 # not the whole repo: the parquet intermediates and the pipeline are not served.
 $rootFiles = @(
   "index.html", "methodology.html",
-  "ward_data.json", "lsoa_data.json", "vcse_data.json", "cics.json",
+  "ward_data.json", "lsoa_data.json", "msoa_data.json", "vcse_data.json", "cics.json",
   "pharmacies.json", "dental_practices.json", "schools.json", "libraries.json",
   "esol_providers.json", "community_centres.json",
   "greenspaces.geojson", "lsoa_boundaries.geojson",
