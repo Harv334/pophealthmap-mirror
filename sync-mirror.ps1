@@ -73,8 +73,40 @@ foreach ($f in @("ward_core.json", "ward_rest.json")) {
   Copy-Item $from (Join-Path $dst "data\$f") -Force
   $copied++
 }
-Copy-Item (Join-Path $Source "data\meta\manifest.json") (Join-Path $dst "data\meta\manifest.json") -Force
-$copied++
+
+# vendor\ : Leaflet, MarkerCluster and the web fonts, copied whole.
+#
+# This is the directory whose absence left the mirror on its loading screen.
+# index.html used to load Leaflet from a CDN, so there was nothing local to
+# copy and nothing here to list. When the map was changed to serve Leaflet
+# itself, this script was not changed with it: the mirror published an
+# index.html whose first <script> was a 404, Leaflet never defined L, the map
+# never initialised, and the page sat on "Loading" with no error a visitor
+# could see. Everything else about the copy was correct, which is why it took
+# a while to find.
+#
+# Swept recursively rather than listed. A list is what failed: it was right
+# on the day it was written and had no way of knowing when the site started
+# needing something new. vendor\ holds only third-party assets the page loads,
+# so taking all of it is both correct and self-maintaining.
+$vendorSrc = Join-Path $Source "vendor"
+if (Test-Path $vendorSrc) {
+  $vendorDst = Join-Path $dst "vendor"
+  if (Test-Path $vendorDst) { Remove-Item $vendorDst -Recurse -Force }
+  Copy-Item $vendorSrc $vendorDst -Recurse -Force
+  $n = (Get-ChildItem $vendorDst -Recurse -File).Count
+  $copied += $n
+  Write-Host "  vendor: $n files"
+} else {
+  Write-Warning "no vendor\ in source. If index.html still references vendor/, the mirror will not load."
+}
+# All of data\meta, not just the manifest. layer_counts.json joined it later
+# and was missed, so the sidebar counts fell back to their slow path on the
+# mirror while working on the live site.
+foreach ($f in (Get-ChildItem (Join-Path $Source "data\meta") -File)) {
+  Copy-Item $f.FullName (Join-Path $dst "data\meta\$($f.Name)") -Force
+  $copied++
+}
 
 # UTF-8 without a BOM, matching how the files are written in the main repo.
 function Write-Utf8NoBom([string]$path, [string]$text) {
@@ -114,6 +146,51 @@ Patch (Join-Path $dst "index.html") `
 # one thing it must never do.
 $cname = Join-Path $dst "CNAME"
 if (Test-Path $cname) { throw "CNAME found in the mirror. Delete it: it would redirect this copy to pophealth.uk and defeat the whole point." }
+
+# ── Does the copy actually have everything the page asks for? ───────────────
+#
+# The lists above are a promise that this script knows what index.html needs.
+# That promise has now been broken three times, each time the same way: the
+# site started loading something new, nobody thought to add it here, and the
+# mirror published a page that fetched a file this copy did not contain. The
+# failures were silent, because a 404 on a data file degrades quietly and a
+# 404 on Leaflet stops the page dead with no message.
+#
+# So the promise is checked instead of trusted. Read the index.html that was
+# just written, find every local URL it references, and confirm each one
+# exists here. This does not need to know WHY a file is needed, only that the
+# page names it, so it keeps working when the site changes again.
+#
+# Throwing is deliberate. A mirror that is 99% copied is not 99% working: it
+# is a site that looks fine in the repository and is broken in the browser,
+# which is strictly worse than a sync that refused to finish.
+$indexText = [System.IO.File]::ReadAllText((Join-Path $dst "index.html"))
+$refs = New-Object System.Collections.Generic.HashSet[string]
+foreach ($pat in @(
+  '<script[^>]+src="([^"]+)"',
+  '<link[^>]+href="([^"]+)"',
+  'fetch\(\s*[''"]([^''"]+)[''"]',
+  'dataUrl\(\s*[''"]([^''"]+)[''"]'
+)) {
+  foreach ($m in [regex]::Matches($indexText, $pat)) {
+    $u = $m.Groups[1].Value
+    # Only local, static paths. Anything templated is resolved at run time and
+    # cannot be checked from here.
+    if ($u -match '^(https?:|//|data:|#|mailto:)') { continue }
+    if ($u -match '[\$\{\}]') { continue }
+    [void]$refs.Add(($u -replace '[?#].*$', ''))
+  }
+}
+$absent = @()
+foreach ($r in $refs) {
+  if (-not (Test-Path (Join-Path $dst ($r -replace '/', '\')))) { $absent += $r }
+}
+Write-Host ("  checked {0} local references from index.html" -f $refs.Count)
+if ($absent.Count) {
+  throw ("index.html asks for {0} file(s) this mirror does not have:`n    {1}`n" -f
+         $absent.Count, ($absent -join "`n    ")) +
+        "Nothing has been committed. Add them to sync-mirror.ps1 and run it again."
+}
 
 $mb = (Get-ChildItem $dst -Recurse -File | Where-Object { $_.FullName -notmatch '\\\.git\\' } | Measure-Object Length -Sum).Sum / 1MB
 Write-Host ""
