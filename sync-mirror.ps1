@@ -60,6 +60,19 @@ foreach ($f in (Get-ChildItem (Join-Path $Source "data\map") -File)) {
   Copy-Item $f.FullName (Join-Path $dst "data\map\$($f.Name)") -Force
   $copied++
 }
+
+# The two halves of the ward data. index.html asks for data/ward_core.json
+# first and falls back to the whole ward_data.json above, so a mirror without
+# these still draws the right map. It just spends a 404 on every load and then
+# waits for 419.5 KB instead of 264.9 KB. Named rather than swept up with a
+# wildcard: everything else under data\ is boundaries and parquet that this
+# copy does not serve.
+foreach ($f in @("ward_core.json", "ward_rest.json")) {
+  $from = Join-Path $Source "data\$f"
+  if (-not (Test-Path $from)) { Write-Warning "missing in source, skipped: data\$f"; continue }
+  Copy-Item $from (Join-Path $dst "data\$f") -Force
+  $copied++
+}
 Copy-Item (Join-Path $Source "data\meta\manifest.json") (Join-Path $dst "data\meta\manifest.json") -Force
 $copied++
 
