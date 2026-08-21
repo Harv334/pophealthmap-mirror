@@ -38,12 +38,25 @@ if (-not (Test-Path (Join-Path $Source "index.html"))) {
 $rootFiles = @(
   "index.html", "methodology.html",
   "ward_data.json", "lsoa_data.json", "msoa_data.json", "borough_data.json",
-  "vcse_data.json", "cics.json",
-  "pharmacies.json", "dental_practices.json", "schools.json", "libraries.json",
-  "esol_providers.json", "community_centres.json",
-  "greenspaces.geojson", "lsoa_boundaries.geojson",
-  "ward_geometries.json", "ward_imd.csv", "og.png"
+  "vcse_data.json",
+  "pharmacies.json", "dental_practices.json", "culture.json",
+  "greenspaces.geojson", "og.png"
 )
+
+# Files this mirror used to serve and must not serve any longer. Copying is not
+# enough on its own: the source repository deleted these, the copy loop only
+# ever adds, and a stale JSON left behind is served happily for as long as
+# anybody links to it. Pruned by name rather than by diffing the whole tree, so
+# that nothing the mirror legitimately keeps can be swept up by accident.
+$retired = @(
+  "cics.json", "schools.json", "libraries.json", "esol_providers.json",
+  "community_centres.json",             # replaced by culture.json
+  "lsoa_boundaries.geojson", "ward_geometries.json", "ward_imd.csv"
+)
+foreach ($f in $retired) {
+  $p = Join-Path $dst $f
+  if (Test-Path $p) { Remove-Item $p -Force; Write-Host "  retired: $f" }
+}
 
 foreach ($d in @("data\map", "data\meta")) {
   New-Item -ItemType Directory -Force (Join-Path $dst $d) | Out-Null
@@ -170,7 +183,13 @@ foreach ($pat in @(
   '<script[^>]+src="([^"]+)"',
   '<link[^>]+href="([^"]+)"',
   'fetch\(\s*[''"]([^''"]+)[''"]',
-  'dataUrl\(\s*[''"]([^''"]+)[''"]'
+  'dataUrl\(\s*[''"]([^''"]+)[''"]',
+  # The on-demand point layers. LAYER_SOURCES holds their paths as data and
+  # fetches them as fetch(src.url), so no literal ever reaches the fetch()
+  # pattern above and every one of them was invisible to this check. That is
+  # how culture.json reached the mirror's file list as a miss rather than as a
+  # thrown error: 25 references checked, all present, and a layer that 404s.
+  'url:\s*[''"]([^''"]+\.(?:json|geojson))[''"]'
 )) {
   foreach ($m in [regex]::Matches($indexText, $pat)) {
     $u = $m.Groups[1].Value
