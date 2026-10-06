@@ -36,7 +36,7 @@ if (-not (Test-Path (Join-Path $Source "index.html"))) {
 # manifest it reads for the data version and the freshness label. Deliberately
 # not the whole repo: the parquet intermediates and the pipeline are not served.
 $rootFiles = @(
-  "index.html", "methodology.html",
+  "index.html", "methodology.html", "accessibility.html", "privacy.html",
   "ward_data.json", "lsoa_data.json", "msoa_data.json", "borough_data.json",
   "vcse_data.json",
   "pharmacies.json", "dental_practices.json", "culture.json",
