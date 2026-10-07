@@ -196,7 +196,9 @@ foreach ($pat in @(
     # Only local, static paths. Anything templated is resolved at run time and
     # cannot be checked from here.
     if ($u -match '^(https?:|//|data:|#|mailto:)') { continue }
-    if ($u -match '[\$\{\}]') { continue }
+    # A quote or a + means the path is assembled in code (as the area
+    # report's stylesheet link is), so it is not a file name either.
+    if ($u -match '[\$\{\}''+]') { continue }
     [void]$refs.Add(($u -replace '[?#].*$', ''))
   }
 }
