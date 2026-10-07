@@ -39,7 +39,7 @@ $rootFiles = @(
   "index.html", "methodology.html", "accessibility.html", "privacy.html",
   "ward_data.json", "lsoa_data.json", "msoa_data.json", "borough_data.json",
   "vcse_data.json",
-  "pharmacies.json", "dental_practices.json", "culture.json",
+  "pharmacies.json", "dental_practices.json",
   "greenspaces.geojson", "og.png"
 )
 
@@ -51,7 +51,8 @@ $rootFiles = @(
 $retired = @(
   "cics.json", "schools.json", "libraries.json", "esol_providers.json",
   "community_centres.json",             # replaced by culture.json
-  "lsoa_boundaries.geojson", "ward_geometries.json", "ward_imd.csv"
+  "lsoa_boundaries.geojson", "ward_geometries.json", "ward_imd.csv",
+  "culture.json"                        # layer removed October 2026
 )
 foreach ($f in $retired) {
   $p = Join-Path $dst $f
