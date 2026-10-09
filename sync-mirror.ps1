@@ -6,7 +6,8 @@
   purpose, and this script reapplies that difference after every copy so it
   cannot be lost in a refresh:
 
-    index.html            robots meta becomes noindex
+    index.html            robots meta becomes noindex, and the region
+                          picker lists London only (the only data here)
 
   The patch fails loudly if the text it expects is missing, which is the point:
   if the main repo changes that line, this stops rather than quietly publishing
@@ -155,6 +156,15 @@ Patch (Join-Path $dst "index.html") `
   '<meta name="robots" content="index, follow, max-image-preview:large">' `
   $noindexNote.TrimEnd() `
   "index.html -> noindex"
+
+# The mirror carries London's data only, so its region picker must list London
+# only; a region listed here would open to an empty map.
+$idx = Join-Path $dst "index.html"
+$text = [System.IO.File]::ReadAllText($idx)
+$liveRe = "var LIVE = \[[^\]]*\];"
+if ($text -notmatch $liveRe) { throw "index.html -> London only: var LIVE not found. The main repo has changed; update sync-mirror.ps1." }
+Write-Utf8NoBom $idx ([regex]::Replace($text, $liveRe, "var LIVE = ['london'];"))
+Write-Host "  patched: index.html -> region picker London only"
 
 # A CNAME here would make this mirror redirect to pophealth.uk, which is the
 # one thing it must never do.
