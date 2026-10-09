@@ -133,8 +133,8 @@
   }
 })();
 </script>
-<title>PopHealth Map - London population health by ward and LSOA</title>
-<meta name="description" content="Population health across all 33 London boroughs at ward and LSOA level. Deprivation, life expectancy, GP and pharmacy access, crime and green space, built entirely from open NHS and government data.">
+<title>PopHealth Map - population health across England by ward and neighbourhood</title>
+<meta name="description" content="Deprivation, health, hospital use, crime, air quality, transport and green space for every ward and neighbourhood in England, from London to the North East. Built entirely from open NHS and government data.">
 
 <!-- One canonical address. The site also answers on www and on the GitHub
      Pages address, both of which redirect here, and any mirror carries a
@@ -161,15 +161,15 @@
 <meta property="og:site_name" content="PopHealth Map">
 <meta property="og:locale" content="en_GB">
 <meta property="og:url" content="https://pophealth.uk/">
-<meta property="og:title" content="PopHealth Map - London population health by ward and LSOA">
-<meta property="og:description" content="Deprivation, life expectancy, GP and pharmacy access, crime, air quality, transport access and green space for all 704 London wards and 4,994 LSOAs. Built entirely from open data.">
+<meta property="og:title" content="PopHealth Map - population health across England by ward and neighbourhood">
+<meta property="og:description" content="Deprivation, health, hospital use, crime, air quality, transport and green space for every ward and neighbourhood in England, from London to the North East. Built entirely from open NHS and government data.">
 <meta property="og:image" content="https://pophealth.uk/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="PopHealth Map: population health across the 33 London boroughs at ward and LSOA level">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="PopHealth Map - London population health by ward and LSOA">
-<meta name="twitter:description" content="Deprivation, life expectancy, GP and pharmacy access, crime and green space for all 704 London wards and 4,994 LSOAs.">
+<meta name="twitter:title" content="PopHealth Map - population health across England by ward and neighbourhood">
+<meta name="twitter:description" content="Deprivation, health, hospital use, crime, air quality, transport and green space for every ward and neighbourhood in England, from London to the North East. Built entirely from open NHS and government data.">
 <meta name="twitter:image" content="https://pophealth.uk/og.png">
 
 <!-- Inline so it costs no request and cannot 404. A map pin in the map's own ink. -->
@@ -4235,10 +4235,10 @@ const OV_META = {
   // unit: "Better (6.8 0–8)". The scale belongs in the label and the
   // description, where it already is.
   ptal_score:                     { src: "GLA LSOA Atlas (TfL PTAL)", yr: "2014", g: "LSOA", u: "", desc: "Public Transport Accessibility Level, averaged over the LSOA. The nine bands 0, 1a, 1b, 2–5, 6a, 6b map onto 0–8, where 8 (6b) is the best connected. Higher is better. TfL's most recent published LSOA banding." },
-  rail_station_dist_m:            { src: "TfL Unified API",      yr: "as at Sep 2026", g: "LSOA", u: "m", desc: "Straight-line distance from the LSOA centroid to the nearest Tube, DLR, Overground, Elizabeth line, tram or National Rail station. Straight line, not walking route, so a real walk is longer wherever a river, railway or park is in the way. Stations just outside London are counted, because for an outer-borough LSOA the nearest one often is." },
-  rail_stations_1km:              { src: "TfL Unified API",      yr: "as at Sep 2026", g: "LSOA", u: "stations", desc: "Stations of any rail mode within 1 km of the LSOA centroid. At ward level this is the population-weighted mean of its LSOAs, not a sum: one station is within 1 km of several LSOAs and summing would count it repeatedly." },
-  bus_stop_dist_m:                { src: "TfL Unified API",      yr: "as at Sep 2026", g: "LSOA", u: "m", desc: "Straight-line distance from the LSOA centroid to the nearest bus stop. Both sides of a road count as separate stops, which is how TfL registers them." },
-  bus_stops_800m:                 { src: "TfL Unified API",      yr: "as at Sep 2026", g: "LSOA", u: "stops", desc: "Bus stops within 800 m of the LSOA centroid, roughly a ten-minute walk. Population-weighted mean at ward level, for the same reason as the station count." },
+  rail_station_dist_m:            { src: "TfL Unified API (London); DfT NaPTAN (elsewhere)",      yr: "as at Sep 2026", g: "LSOA", u: "m", desc: "Straight-line distance from the LSOA centroid to the nearest rail, metro, tram or (in London) Tube, DLR, Overground or Elizabeth line station. Straight line, not walking route, so a real walk is longer wherever a river, railway or park is in the way. Stations just outside London are counted, because for an outer-borough LSOA the nearest one often is." },
+  rail_stations_1km:              { src: "TfL Unified API (London); DfT NaPTAN (elsewhere)",      yr: "as at Sep 2026", g: "LSOA", u: "stations", desc: "Stations of any rail mode within 1 km of the LSOA centroid. At ward level this is the population-weighted mean of its LSOAs, not a sum: one station is within 1 km of several LSOAs and summing would count it repeatedly." },
+  bus_stop_dist_m:                { src: "TfL Unified API (London); DfT NaPTAN (elsewhere)",      yr: "as at Sep 2026", g: "LSOA", u: "m", desc: "Straight-line distance from the LSOA centroid to the nearest bus stop. Both sides of a road count as separate stops, which is how TfL and NaPTAN register them." },
+  bus_stops_800m:                 { src: "TfL Unified API (London); DfT NaPTAN (elsewhere)",      yr: "as at Sep 2026", g: "LSOA", u: "stops", desc: "Bus stops within 800 m of the LSOA centroid, roughly a ten-minute walk. Population-weighted mean at ward level, for the same reason as the station count." },
 
   // IMD 2025
   imd_score:                      { src: "MHCLG IMD 2025",       yr: "2025", g: "LSOA", u: "score",  desc: "Composite Index of Multiple Deprivation. Higher = more deprived." },
@@ -9122,6 +9122,50 @@ function _applyBoroughSolo() {
   sel.addEventListener('change', () => setTimeout(() => { render(); if (libTheme) renderLib(); }, 0));
 
   render();
+})();
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   USAGE COUNTS
+
+   Anonymous, cookie-free counts of which regions are opened and which
+   indicators are picked, sent to GoatCounter as a plain request to its /count
+   address: no script from anywhere else, no cookie, nothing stored in the
+   browser, and no personal data (GoatCounter does not keep IP addresses).
+   Nothing is sent when the browser asks not to be tracked (Do Not Track or
+   Global Privacy Control), from a local copy, or until the account named in
+   PH_STATS_SITE exists. Described on the privacy page.
+   ═══════════════════════════════════════════════════════════════════════════ */
+const PH_STATS_SITE = 'pophealth';   // https://pophealth.goatcounter.com
+const phCount = (function () {
+  let off = !PH_STATS_SITE || location.protocol === 'file:' ||
+    /^(localhost|127\.|0\.0\.0\.0)/.test(location.hostname);
+  try {
+    if (navigator.doNotTrack === '1' || window.doNotTrack === '1' || navigator.globalPrivacyControl) off = true;
+  } catch (e) {}
+  return function (path, title, isEvent) {
+    if (off) return;
+    try {
+      const q = 'p=' + encodeURIComponent(path) + '&t=' + encodeURIComponent(title || path) +
+        (isEvent ? '&e=true' : '') + '&rnd=' + Math.random().toString(36).slice(2);
+      const img = new Image();
+      img.referrerPolicy = 'no-referrer';
+      img.src = 'https://' + PH_STATS_SITE + '.goatcounter.com/count?' + q;
+    } catch (e) {}
+  };
+})();
+(function _usageCounts() {
+  const R = window.PH_REGION || { id: 'london', name: 'London' };
+  phCount('/' + (R.id || 'london'), 'Map: ' + (R.name || 'London'), false);
+  const sel = document.getElementById('ov');
+  if (!sel) return;
+  let last = sel.value;
+  sel.addEventListener('change', () => {
+    const v = sel.value;
+    if (!v || v === 'none' || v === last) return;
+    last = v;
+    const opt = sel.querySelector('option[value="' + v + '"]');
+    phCount('indicator/' + v, 'Indicator: ' + (opt ? opt.textContent : v), true);
+  });
 })();
 
 /* ═══════════════════════════════════════════════════════════════════════════
